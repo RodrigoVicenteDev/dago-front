@@ -1,28 +1,35 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2022",
-    "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    /* 🔧 Base */
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "module": "ESNext",
-    "types": ["vite/client"],
+    "moduleResolution": "Node",
     "skipLibCheck": true,
+    "allowJs": false,
 
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
+    /* ⚛️ React */
     "jsx": "react-jsx",
 
-    /* Linting */
+    /* 🧠 TypeScript moderno e seguro */
     "strict": true,
+    "noImplicitAny": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUnusedParameters": false,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+
+    /* 💡 Paths (aliases) */
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"]
+    },
+
+    /* 🧱 Compatibilidade */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": ["src" ,"vite-env.d.ts"],
+  "exclude": ["node_modules", "dist"]
 }
