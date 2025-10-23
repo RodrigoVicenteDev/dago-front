@@ -3,6 +3,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import UsersPage from "./pages/UsersPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 
 
@@ -13,6 +14,8 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          
+          <Route path="/redefinir-senha" element={<ForgotPasswordPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
             path="/usuarios"
