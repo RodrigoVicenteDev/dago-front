@@ -1,8 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-// se você já criou o AuthContext, descomente a linha abaixo
-// import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext"; // ✅ descomente aqui
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,7 +10,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // const { login } = useAuth();
+  const { login } = useAuth(); // ✅ agora usando o contexto
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -20,15 +19,18 @@ export default function LoginPage() {
     setErro(null);
     setLoading(true);
     try {
-      // ajuste os campos conforme seu backend (ex.: { email, senha })
       const res = await axios.post(`${API_URL}/api/Auth/login`, { email, senha });
-      const token = res.data?.token;
-      if (!token) throw new Error("Token ausente na resposta.");
-      // se tiver AuthContext:
-      // login(token);
-      localStorage.setItem("token", token);
+
+      const { token, usuario } = res.data;
+      if (!token || !usuario) throw new Error("Token ou usuário ausente na resposta.");
+
+      // ✅ salva token + usuário no AuthContext e localStorage
+      login(token, usuario);
+
+      // redireciona para o painel inicial (pode ser /usuarios ou /painel)
       navigate("/usuarios");
     } catch (err: any) {
+      console.error(err);
       setErro(err?.response?.data?.message ?? "Usuário ou senha inválidos.");
     } finally {
       setLoading(false);
@@ -116,7 +118,12 @@ export default function LoginPage() {
                 className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-medium text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 disabled:opacity-60"
               >
                 {loading && (
-                  <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <svg
+                    className="h-5 w-5 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden
+                  >
                     <circle
                       className="opacity-25"
                       cx="12"
