@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, LogOut, Settings, Users, Briefcase, Building2 } from "lucide-react";
+import { Menu, X, User, LogOut, Settings, Users, Briefcase, Building2, Upload, Edit3 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Sidebar() {
@@ -9,7 +9,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { usuario, logout } = useAuth();
 
-  const podeVerParametros = usuario?.cargo === "gerente" // 👈 apenas cargoId 2 vê o menu
+  const podeVerParametros = usuario?.cargo === "gerente"; // 👈 apenas cargoId 2 vê o menu
 
   return (
     <div
@@ -29,10 +29,7 @@ export default function Sidebar() {
           {open && <span className="font-semibold text-lg">Painel</span>}
         </div>
 
-        <button
-          onClick={() => setOpen(!open)}
-          className="p-1 text-slate-300 hover:text-white"
-        >
+        <button onClick={() => setOpen(!open)} className="p-1 text-slate-300 hover:text-white">
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -47,6 +44,13 @@ export default function Sidebar() {
           <User size={20} className="text-emerald-400" />
           {open && <span>Meu Usuário</span>}
         </button>
+        <button
+  onClick={() => navigate("/minha-tabela")}
+  className="flex items-center gap-3 w-full rounded-lg px-3 py-2 hover:bg-white/10 transition"
+>
+  <Edit3 size={20} className="text-emerald-400" />
+  {open && <span>Minha Tabela</span>}
+</button>
 
         {/* ✅ Parâmetros (somente cargoId 2) */}
         {podeVerParametros && (
@@ -69,7 +73,12 @@ export default function Sidebar() {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               )}
             </button>
@@ -80,6 +89,13 @@ export default function Sidebar() {
                 parametrosOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
+              <button
+                onClick={() => navigate("/parametros/uploads/csv-455")}
+                className="flex items-center gap-2 w-full text-sm rounded-lg px-3 py-2 hover:bg-white/10 transition text-slate-300"
+              >
+                <Upload size={16} className="text-emerald-400" />
+                {open && "Upload CSV-455"}
+              </button>
               <button
                 onClick={() => navigate("/parametros/cargos")}
                 className="flex items-center gap-2 w-full text-sm rounded-lg px-3 py-2 hover:bg-white/10 transition text-slate-300"
@@ -102,6 +118,13 @@ export default function Sidebar() {
               >
                 <Users size={16} className="text-emerald-400" />
                 {open && "Usuários"}
+              </button>
+              <button
+                onClick={() => navigate("/parametros/gerenciar-senhas")}
+                className="flex items-center gap-2 w-full text-sm rounded-lg px-3 py-2 hover:bg-white/10 transition text-slate-300"
+              >
+                <Settings size={16} className="text-emerald-400" />
+                {open && "Gerenciar Senhas"}
               </button>
             </div>
           </div>
