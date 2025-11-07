@@ -9,6 +9,7 @@ import {
 import { AgGridReact } from "ag-grid-react";
 import { CalendarDays, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import FiltrosCTRC from "@/components/FiltrosCTRC";
 
 // registra módulos community
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -42,7 +43,9 @@ export default function MinhaTabelaPage() {
   const [periodo, setPeriodo] = useState({ dataInicio: "", dataFim: "" });
   const [unidades, setUnidades] = useState<string[]>([]);
   const [filtroUnd, setFiltroUnd] = useState<string>("");
+
   const gridRef = useRef<any>(null);
+
   // 🗓️ período padrão (últimos 30 dias)
   useEffect(() => {
     const hoje = new Date();
@@ -108,7 +111,6 @@ export default function MinhaTabelaPage() {
           ? lookupsRes.data.statusesEntrega
           : [];
 
-      // fallback pra garantir que o dropdown apareça mesmo se o back não mandar nada
       const fallbackStatuses: StatusEntrega[] = [
         { id: 1, nome: "ENTREGUE NO PRAZO" },
         { id: 2, nome: "ATRASADA" },
@@ -125,7 +127,6 @@ export default function MinhaTabelaPage() {
 
       const finalStatuses = apiStatuses.length ? apiStatuses : fallbackStatuses;
 
-      console.log("🔍 Statuses usados:", finalStatuses);
       setStatuses(finalStatuses);
       setStatusesById(
         finalStatuses.reduce<Record<number, string>>((acc, s) => {
@@ -133,14 +134,10 @@ export default function MinhaTabelaPage() {
           return acc;
         }, {}),
       );
-      // ---------------------------------- //
 
       setRows(filtroUnd ? data.filter((r: any) => r.unidade === filtroUnd) : data);
 
-      // 🧩 auto-size colunas (duplo clique no Excel)
-      setTimeout(() => {
-        autoSizeAllColumns();
-      }, 300);
+      setTimeout(() => autoSizeAllColumns(), 300);
     } catch (err) {
       console.error("Erro ao carregar grid:", err);
     } finally {
@@ -163,18 +160,44 @@ export default function MinhaTabelaPage() {
     const timeout = setTimeout(async () => {
       const ids = Object.keys(dirty);
       if (!ids.length) return;
+
       for (const id of ids) {
+        const dto = dirty[Number(id)];
+        const dataEntrega =
+          dto.DataEntregaRealizada ?? dto.dataEntregaRealizada ?? null;
+
+        let dataISO = null;
+        if (dataEntrega) {
+          const d = new Date(dataEntrega);
+          if (!isNaN(d.getTime())) {
+            dataISO = d.toISOString();
+          }
+        }
+
+        const payload = {
+          DataEntregaRealizada: dataISO,
+          StatusEntregaId: dto.StatusEntregaId ?? dto.statusEntregaId ?? null,
+          Observacao: dto.Observacao ?? dto.observacao ?? null,
+          DescricaoOcorrenciaAtendimento:
+            dto.DescricaoOcorrenciaAtendimento ??
+            dto.descricaoOcorrenciaAtendimento ??
+            dto.ultimaDescricaoOcorrenciaAtendimento ??
+            null,
+        };
+
         try {
-          await axios.put(`${API_URL}/api/ctrcs/${id}`, dirty[Number(id)], {
+          await axios.put(`${API_URL}/api/ctrcs/${id}`, payload, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          console.log(`✅ CTRC ${id} atualizado`, dirty[Number(id)]);
+          console.log(`✅ CTRC ${id} atualizado com sucesso`, payload);
         } catch (err) {
-          console.error(`Erro ao salvar CTRC ${id}`, err);
+          console.error(`❌ Erro ao salvar CTRC ${id}`, err);
         }
       }
+
       setDirty({});
     }, 2000);
+
     return () => clearTimeout(timeout);
   }, [dirty]);
 
@@ -182,106 +205,109 @@ export default function MinhaTabelaPage() {
   const onCellEdit = (params: any) => {
     const { id } = params.data;
     const field = params.colDef.field as string;
-    const value = params.newValue;
+    let value = params.newValue ?? params.value ?? params.data?.[field] ?? null;
+
+    if (field === "statusEntregaId") {
+      const asNumber = Number(value);
+      if (!isNaN(asNumber)) value = asNumber;
+    }
+
+    if (field === "dataEntregaRealizada" && value) {
+      let parsed: Date | null = null;
+      if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        const [dia, mes, ano] = value.split("/").map(Number);
+        parsed = new Date(ano, mes - 1, dia);
+      } else parsed = new Date(value);
+      if (parsed && !isNaN(parsed.getTime())) value = parsed.toISOString();
+      else value = null;
+    }
 
     setRows(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
     setAllRows(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
-    setDirty(prev => ({
-      ...prev,
-      [id]: { ...(prev[id] || {}), [field]: value },
-    }));
+
+    const fieldMap: Record<string, string> = {
+      dataEntregaRealizada: "DataEntregaRealizada",
+      statusEntregaId: "StatusEntregaId",
+      observacao: "Observacao",
+      descricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
+      ultimaDescricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
+    };
+    const backendField = fieldMap[field] || field;
+
+    setDirty(prev => {
+      const updated = {
+        ...(prev[id] || {}),
+        [backendField]: value,
+      };
+      return { ...prev, [id]: updated };
+    });
   };
 
-  // 🔢 definição das colunas
   const columnDefs = [
+    { headerName: "CTRC", field: "ctrc", minWidth: 130 },
+    { headerName: "Emissão", field: "dataEmissao", minWidth: 130, valueFormatter: (p: any) => formatDate(p.value) },
+    { headerName: "Destinatário", field: "destinatario", minWidth: 220 },
+    { headerName: "Cidade Entrega", field: "cidadeEntrega", minWidth: 180 },
+    { headerName: "UF", field: "uf", minWidth: 70 },
+    { headerName: "UND", field: "unidade", minWidth: 90 },
+    { headerName: "NF", field: "numeroNotaFiscal", minWidth: 130 },
+    { headerName: "Ocorrência Sistema", field: "ultimaOcorrenciaSistema", minWidth: 260 },
+    { headerName: "Ocorrência Atendimento", field: "ultimaDescricaoOcorrenciaAtendimento", editable: true, minWidth: 260 },
+    { headerName: "Lead Time", field: "dataPrevistaEntrega", minWidth: 130, valueFormatter: (p: any) => formatDate(p.value) },
     {
-      headerName: "CTRC",
-      field: "ctrc",
-      width: 130,
-      cellClass: "whitespace-nowrap",
+      
+  headerName: "Data Entrega",
+  field: "dataEntregaRealizada",
+  editable: true,
+  minWidth: 130,
+
+  // ✅ usa input tipo "date" (sem hora)
+  cellEditorSelector: () => ({
+    component: "agDateCellEditor",
+    params: {
+      // limita intervalo aceitável
+      min: "2000-01-01",
+      max: "2099-12-31",
     },
-    {
-      headerName: "Emissão",
-      field: "dataEmissao",
-      width: 130,
-      valueFormatter: (p: any) => formatDate(p.value),
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Destinatário",
-      field: "destinatario",
-      width: 220,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Cidade Entrega",
-      field: "cidadeEntrega",
-      width: 180,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "UF",
-      field: "uf",
-      width: 70,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "UND",
-      field: "unidade",
-      width: 90,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "NF",
-      field: "numeroNotaFiscal",
-      width: 130,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Ocorrência Sistema",
-      field: "ultimaOcorrenciaSistema",
-      flex: 1,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Ocorrência Atendimento",
-      field: "ultimaDescricaoOcorrenciaAtendimento",
-      editable: true,
-      flex: 1,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Lead Time",
-      field: "dataPrevistaEntrega",
-      width: 130,
-      valueFormatter: (p: any) => formatDate(p.value),
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Data Entrega",
-      field: "dataEntregaRealizada",
-      width: 130,
-      valueFormatter: (p: any) => formatDate(p.value),
-      cellClass: "whitespace-nowrap",
-    },
-    // ⭐ STATUS COM LOOKUP
+  }),
+
+  // ✅ formata valor exibido (dd/MM/yyyy)
+  cellRenderer: (p: any) => {
+    if (!p.value) return "";
+    const d = new Date(p.value);
+    if (isNaN(d.getTime())) return p.value;
+    return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+  },
+
+  // ✅ converte valor digitado para ISO (formato aceito no backend)
+  valueParser: (p: any) => {
+    if (!p.newValue) return null;
+    const v = p.newValue;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+      const [d, m, y] = v.split("/").map(Number);
+      return new Date(y, m - 1, d).toISOString();
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      return new Date(v).toISOString();
+    }
+    return v;
+  },
+
+  cellClass: "whitespace-nowrap",
+},
+
     {
       headerName: "Status",
       field: "statusEntregaId",
-      width: 160,
+      minWidth: 160,
       editable: true,
       cellEditor: "agSelectCellEditor",
       cellEditorParams: () => ({
-        values: statuses.map(s => String(s.id)),
+        values: statuses.map(s => s.id),
       }),
-      valueFormatter: (p: any) => {
-        const nome = statusesById[Number(p.value)];
-        return nome || "";
-      },
+      valueFormatter: (p: any) => statusesById[Number(p.value)] || "",
       cellStyle: (p: any) => {
         const nome = statusesById[Number(p.value)];
         const color = nome ? getStatusColor(nome) : "#94a3b8";
-
         return {
           backgroundColor: color,
           color: "white",
@@ -292,46 +318,24 @@ export default function MinhaTabelaPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: "10%", // 👈 largura fixa, sem ocupar o grid todo
+          width: "6%",
           height: "20px",
-          margin: "10px auto", // 👈 centraliza e cria espaçamento entre linhas
-          boxShadow: "0 1px 2px rgba(0,0,0,0.1)", // 👈 leve sombra pra destacar
+          margin: "7px",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
         };
       },
-      cellClass: "whitespace-nowrap",
     },
-
-    {
-      headerName: "Observações",
-      field: "observacao",
-      editable: true,
-      flex: 1,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Dias Atraso",
-      field: "desvioPrazoDias",
-      width: 110,
-      cellClass: "whitespace-nowrap",
-    },
-    {
-      headerName: "Notas Agrupadas",
-      field: "notasFiscais",
-      width: 180,
-      cellClass: "whitespace-nowrap",
-    },
+    { headerName: "Observações", field: "observacao", editable: true, minWidth: 260 },
+    { headerName: "Dias Atraso", field: "desvioPrazoDias", minWidth: 110 },
+    { headerName: "Notas Agrupadas", field: "notasFiscais", minWidth: 180 },
   ];
+
   const autoSizeAllColumns = () => {
     if (!gridRef.current) return;
-
     const columnApi = gridRef.current.columnApi;
     if (!columnApi) return;
-
     const allColumnIds: string[] = [];
-    columnApi.getAllColumns().forEach((col: any) => {
-      allColumnIds.push(col.getId());
-    });
-
+    columnApi.getAllColumns().forEach((col: any) => allColumnIds.push(col.getId()));
     columnApi.autoSizeColumns(allColumnIds, false);
   };
 
@@ -351,7 +355,7 @@ export default function MinhaTabelaPage() {
         </button>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros originais */}
       <div className="flex flex-wrap gap-3 mb-4 items-center">
         <input
           type="date"
@@ -365,25 +369,51 @@ export default function MinhaTabelaPage() {
           onChange={e => setPeriodo(p => ({ ...p, dataFim: e.target.value }))}
           className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
         />
-        <select
-          value={filtroUnd}
-          onChange={e => setFiltroUnd(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm min-w-[140px]"
-        >
-          <option value="">Todas as UND</option>
-          {unidades.map(u => (
-            <option key={u} value={u}>
-              {u}
-            </option>
-          ))}
-        </select>
+       
       </div>
+
+      {/* Novo painel moderno de filtros */}
+      <FiltrosCTRC
+  allRows={allRows}
+  unidades={unidades}
+  statuses={statuses}
+  onFiltrar={(filtros) => {
+    let filtrados = [...allRows];
+
+   if (filtros.und?.length)
+  filtrados = filtrados.filter(r => filtros.und!.includes(r.unidade));
+
+    if (filtros.status?.length)
+      filtrados = filtrados.filter(r =>
+        filtros.status!.includes(String(r.statusEntregaId))
+      );
+
+    if (filtros.cliente?.length)
+      filtrados = filtrados.filter(r => {
+        const nomeCliente =
+          r.clienteNome || r.cliente || r.nomeCliente || r.razaoSocialCliente || "";
+        return filtros.cliente!.includes(nomeCliente);
+      });
+
+    if (filtros.destinatario?.length)
+      filtrados = filtrados.filter(r =>
+        filtros.destinatario!.includes(r.destinatario)
+      );
+
+      if (filtros.nf?.length)
+  filtrados = filtrados.filter(r =>
+    filtros.nf!.includes(String(r.numeroNotaFiscal))
+  );
+
+    setRows(filtrados);
+  }}
+/>
 
       {/* GRID */}
       <div style={{ height: "70vh", width: "100%" }}>
         <AgGridReact
           ref={gridRef}
-          onGridReady={() => autoSizeAllColumns()}
+          onGridReady={autoSizeAllColumns}
           theme={myTheme}
           rowData={rows}
           columnDefs={columnDefs}
@@ -392,11 +422,13 @@ export default function MinhaTabelaPage() {
           pagination
           paginationPageSize={25}
           paginationPageSizeSelector={[25, 50, 100]}
+          rowHeight={34}
+          headerHeight={32}
           defaultColDef={{
             resizable: true,
             sortable: true,
-            filter: true,
-            floatingFilter: true,
+            filter: false,
+            floatingFilter: false,
             wrapText: false,
             autoHeight: false,
           }}
