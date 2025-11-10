@@ -14,6 +14,7 @@ import EditarUsuarioPage from "./pages/parametros/EditarUsuarioPage";
 import GerenciarSenhasPage from "./pages/parametros/GerenciarSenhasPage";
 import Csv455Page from "./pages/parametros/Uploads/Csv455Page";
 import MinhaTabelaPage from "./pages/MinhaTabelaPage";
+import EsporadicosPage from "./pages/parametros/EsporadicosPage";
 
 function App() {
   return (
@@ -35,6 +36,8 @@ function App() {
           >
             <Route path="usuarios" element={<UsersPage />} />
             {/* futuras rotas internas aqui */}
+
+            <Route path="parametros/esporadicos" element={<EsporadicosPage />} />
             <Route path="parametros/gerenciar-senhas" element={<GerenciarSenhasPage />} />
             <Route path="parametros/uploads/csv-455" element={<Csv455Page />} />
 
@@ -43,8 +46,9 @@ function App() {
             <Route path="parametros/usuarios/editar/:id" element={<EditarUsuarioPage />} />
             <Route path="parametros/clientes" element={<ClientesPage />} />
             <Route
-              path="/minha-tabela" element={
-              <ProtectedRoute>
+              path="/minha-tabela"
+              element={
+                <ProtectedRoute>
                   <MinhaTabelaPage />
                 </ProtectedRoute>
               }

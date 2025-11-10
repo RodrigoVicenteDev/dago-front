@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, LogOut, Settings, Users, Briefcase, Building2, Upload, Edit3 } from "lucide-react";
+import {
+  Menu,
+  X,
+  User,
+  LogOut,
+  Settings,
+  Users,
+  Briefcase,
+  Building2,
+  Upload,
+  Edit3,
+  Settings2,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Sidebar() {
@@ -45,12 +57,12 @@ export default function Sidebar() {
           {open && <span>Meu Usuário</span>}
         </button>
         <button
-  onClick={() => navigate("/minha-tabela")}
-  className="flex items-center gap-3 w-full rounded-lg px-3 py-2 hover:bg-white/10 transition"
->
-  <Edit3 size={20} className="text-emerald-400" />
-  {open && <span>Minha Tabela</span>}
-</button>
+          onClick={() => navigate("/minha-tabela")}
+          className="flex items-center gap-3 w-full rounded-lg px-3 py-2 hover:bg-white/10 transition"
+        >
+          <Edit3 size={20} className="text-emerald-400" />
+          {open && <span>Minha Tabela</span>}
+        </button>
 
         {/* ✅ Parâmetros (somente cargoId 2) */}
         {podeVerParametros && (
@@ -86,7 +98,7 @@ export default function Sidebar() {
             {/* Submenus (animados) */}
             <div
               className={`ml-8 mt-1 space-y-1 overflow-hidden transition-all ${
-                parametrosOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                parametrosOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
               <button
@@ -96,6 +108,7 @@ export default function Sidebar() {
                 <Upload size={16} className="text-emerald-400" />
                 {open && "Upload CSV-455"}
               </button>
+
               <button
                 onClick={() => navigate("/parametros/cargos")}
                 className="flex items-center gap-2 w-full text-sm rounded-lg px-3 py-2 hover:bg-white/10 transition text-slate-300"
@@ -119,12 +132,22 @@ export default function Sidebar() {
                 <Users size={16} className="text-emerald-400" />
                 {open && "Usuários"}
               </button>
+
               <button
                 onClick={() => navigate("/parametros/gerenciar-senhas")}
                 className="flex items-center gap-2 w-full text-sm rounded-lg px-3 py-2 hover:bg-white/10 transition text-slate-300"
               >
                 <Settings size={16} className="text-emerald-400" />
                 {open && "Gerenciar Senhas"}
+              </button>
+
+              {/* 🟢 Novo item: Configuração de Esporádicos */}
+              <button
+                onClick={() => navigate("/parametros/esporadicos")}
+                className="flex items-center gap-2 w-full text-sm rounded-lg px-3 py-2 hover:bg-white/10 transition text-slate-300"
+              >
+                <Settings2 size={16} className="text-emerald-400" />
+                {open && "Esporádicos"}
               </button>
             </div>
           </div>

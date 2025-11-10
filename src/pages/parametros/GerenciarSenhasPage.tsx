@@ -55,7 +55,7 @@ export default function GerenciarSenhasPage() {
     setMensagem(null);
     try {
       await axios.patch(
-        `${API_URL}/api/Usuario/atualizarsenha/${usuarioSelecionado.id}`,
+        `${API_URL}/api/Usuario/atualizar/${usuarioSelecionado.id}`,
         { novaSenha },
         { headers: { Authorization: `Bearer ${token}` } }
       );
