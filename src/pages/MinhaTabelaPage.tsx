@@ -10,6 +10,7 @@ import { AgGridReact } from "ag-grid-react";
 import { CalendarDays, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import FiltrosCTRC from "@/components/FiltrosCTRC";
+import AgendaModal from "@/components/AgendaModal";
 
 // registra módulos community
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -39,10 +40,29 @@ export default function MinhaTabelaPage() {
   const [statusesById, setStatusesById] = useState<Record<number, string>>({});
   const [dirty, setDirty] = useState<Record<number, any>>({});
   const [loading, setLoading] = useState(false);
+  const [gridInicializado, setGridInicializado] = useState(false);
 
   const [periodo, setPeriodo] = useState({ dataInicio: "", dataFim: "" });
   const [unidades, setUnidades] = useState<string[]>([]);
   const [filtroUnd, setFiltroUnd] = useState<string>("");
+
+  // 🔸 NOVO: filtros persistentes
+  const [filtrosAtuais, setFiltrosAtuais] = useState<any>({});
+
+  const [agendaModalVisible, setAgendaModalVisible] = useState(false);
+  const [agendaCTRCId, setAgendaCTRCId] = useState<number | null>(null);
+  const [agendaDataAtual, setAgendaDataAtual] = useState<string | null>(null);
+
+  const handleAbrirAgendaModal = (id: number, data: string | null) => {
+    setAgendaCTRCId(id);
+    setAgendaDataAtual(data);
+    setAgendaModalVisible(true);
+  };
+
+  const handleSalvarAgenda = ({ ctrcId, tipoAgendaId, dataAgenda }: any) => {
+    setRows(prev => prev.map(r => (r.id === ctrcId ? { ...r, dataAgenda, tipoAgendaId } : r)));
+    setAllRows(prev => prev.map(r => (r.id === ctrcId ? { ...r, dataAgenda, tipoAgendaId } : r)));
+  };
 
   const gridRef = useRef<any>(null);
 
@@ -61,7 +81,7 @@ export default function MinhaTabelaPage() {
     if (!value) return "";
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+    return d.toLocaleDateString("pt-BR");
   };
 
   // 🎨 cor por status
@@ -99,13 +119,11 @@ export default function MinhaTabelaPage() {
       const data = gridRes.data ?? [];
       setAllRows(data);
 
-      // UND únicas
       const unds = Array.from(new Set(data.map((r: any) => r.unidade)))
         .filter(Boolean)
         .sort();
       setUnidades(unds);
 
-      // ------- LOOKUPS DE STATUS ------- //
       const apiStatuses: StatusEntrega[] =
         lookupsRes.data?.statusesEntrega && Array.isArray(lookupsRes.data.statusesEntrega)
           ? lookupsRes.data.statusesEntrega
@@ -135,7 +153,7 @@ export default function MinhaTabelaPage() {
         }, {}),
       );
 
-      setRows(filtroUnd ? data.filter((r: any) => r.unidade === filtroUnd) : data);
+      setRows(data);
 
       setTimeout(() => autoSizeAllColumns(), 300);
     } catch (err) {
@@ -146,10 +164,9 @@ export default function MinhaTabelaPage() {
   }
 
   useEffect(() => {
-    if (periodo.dataInicio && periodo.dataFim) fetchGrid();
-  }, [periodo]);
+    fetchGrid();
+  }, []);
 
-  // quando muda UND, filtra em memória
   useEffect(() => {
     if (!filtroUnd) setRows(allRows);
     else setRows(allRows.filter((r: any) => r.unidade === filtroUnd));
@@ -200,56 +217,51 @@ export default function MinhaTabelaPage() {
     return () => clearTimeout(timeout);
   }, [dirty]);
 
-  // ✏️ edição inline
-const onCellEdit = (params: any) => {
-  const gridApi = gridRef.current?.api;
-  const { id } = params.data;
-  const field = params.colDef.field as string;
-  let value = params.newValue ?? params.value ?? params.data?.[field] ?? null;
+  const onCellEdit = (params: any) => {
+    const gridApi = gridRef.current?.api;
+    const { id } = params.data;
+    const field = params.colDef.field as string;
+    let value = params.newValue ?? params.value ?? params.data?.[field] ?? null;
 
-  // 🧭 Ajustes de tipo
-  if (field === "statusEntregaId") {
-    const asNumber = Number(value);
-    if (!isNaN(asNumber)) value = asNumber;
-  }
-
-  if (field === "dataEntregaRealizada" && value) {
-    let parsed: Date | null = null;
-    if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-      const [dia, mes, ano] = value.split("/").map(Number);
-      parsed = new Date(ano, mes - 1, dia);
-    } else parsed = new Date(value);
-    if (parsed && !isNaN(parsed.getTime())) value = parsed.toISOString();
-    else value = null;
-  }
-
-  // 🧠 Atualiza diretamente o node (não recria o array)
-  if (gridApi) {
-    const node = gridApi.getRowNode(id);
-    if (node) {
-      node.setDataValue(field, value);
+    if (field === "statusEntregaId") {
+      const asNumber = Number(value);
+      if (!isNaN(asNumber)) value = asNumber;
     }
-  }
 
-  // 🔐 Atualiza dirty (para autosave)
-  const fieldMap: Record<string, string> = {
-    dataEntregaRealizada: "DataEntregaRealizada",
-    statusEntregaId: "StatusEntregaId",
-    observacao: "Observacao",
-    descricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
-    ultimaDescricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
-  };
-  const backendField = fieldMap[field] || field;
+    if (field === "dataEntregaRealizada" && value) {
+      let parsed: Date | null = null;
+      if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        const [dia, mes, ano] = value.split("/").map(Number);
+        parsed = new Date(ano, mes - 1, dia);
+      } else parsed = new Date(value);
+      if (parsed && !isNaN(parsed.getTime())) value = parsed.toISOString();
+      else value = null;
+    }
 
-  setDirty(prev => {
-    const updated = {
-      ...(prev[id] || {}),
-      [backendField]: value,
+    if (gridApi) {
+      const node = gridApi.getRowNode(id);
+      if (node) {
+        node.setDataValue(field, value);
+      }
+    }
+
+    const fieldMap: Record<string, string> = {
+      dataEntregaRealizada: "DataEntregaRealizada",
+      statusEntregaId: "StatusEntregaId",
+      observacao: "Observacao",
+      descricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
+      ultimaDescricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
     };
-    return { ...prev, [id]: updated };
-  });
-};
+    const backendField = fieldMap[field] || field;
 
+    setDirty(prev => {
+      const updated = {
+        ...(prev[id] || {}),
+        [backendField]: value,
+      };
+      return { ...prev, [id]: updated };
+    });
+  };
 
   const columnDefs = [
     { headerName: "CTRC", field: "ctrc", minWidth: 130 },
@@ -277,31 +289,62 @@ const onCellEdit = (params: any) => {
       minWidth: 130,
       valueFormatter: (p: any) => formatDate(p.value),
     },
+
+    {
+      headerName: "Agenda",
+      field: "dataAgenda",
+      minWidth: 150,
+      cellRenderer: (p: any) => {
+        const { dataAgenda, id } = p.data;
+
+        // Formata data pura "YYYY-MM-DD" sem criar Date (evita cair 1 dia)
+        const formatAgenda = (val: any) => {
+          if (!val) return "-";
+          if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            const [y, m, d] = val.split("-");
+            return `${d}/${m}/${y}`;
+          }
+          // fallback para casos com hora/ISO
+          try {
+            return new Date(val).toLocaleDateString("pt-BR");
+          } catch {
+            return String(val);
+          }
+        };
+
+        return (
+          <div className="flex items-center justify-between gap-2">
+            <span>{formatAgenda(dataAgenda)}</span>
+            <button
+              onClick={() => handleAbrirAgendaModal(id, dataAgenda)}
+              className="text-emerald-500 hover:text-emerald-700"
+              title="Agendar / Reagendar"
+            >
+              <CalendarDays size={16} />
+            </button>
+          </div>
+        );
+      },
+    },
+
     {
       headerName: "Data Entrega",
       field: "dataEntregaRealizada",
       editable: true,
       minWidth: 130,
-
-      // ✅ usa input tipo "date" (sem hora)
       cellEditorSelector: () => ({
         component: "agDateCellEditor",
         params: {
-          // limita intervalo aceitável
           min: "2000-01-01",
           max: "2099-12-31",
         },
       }),
-
-      // ✅ formata valor exibido (dd/MM/yyyy)
       cellRenderer: (p: any) => {
         if (!p.value) return "";
         const d = new Date(p.value);
         if (isNaN(d.getTime())) return p.value;
         return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
       },
-
-      // ✅ converte valor digitado para ISO (formato aceito no backend)
       valueParser: (p: any) => {
         if (!p.newValue) return null;
         const v = p.newValue;
@@ -313,7 +356,6 @@ const onCellEdit = (params: any) => {
         }
         return v;
       },
-
       cellClass: "whitespace-nowrap",
     },
 
@@ -361,6 +403,32 @@ const onCellEdit = (params: any) => {
     columnApi.autoSizeColumns(allColumnIds, false);
   };
 
+  // 🔸 reaplica filtros salvos ao carregar
+  useEffect(() => {
+    const saved = localStorage.getItem("filtrosCTRC");
+    if (saved && allRows.length > 0) {
+      const filtros = JSON.parse(saved);
+      setFiltrosAtuais(filtros);
+
+      let filtrados = [...allRows];
+      if (filtros.und?.length) filtrados = filtrados.filter(r => filtros.und.includes(r.unidade));
+      if (filtros.status?.length)
+        filtrados = filtrados.filter(r => filtros.status.includes(String(r.statusEntregaId)));
+      if (filtros.cliente?.length)
+        filtrados = filtrados.filter(r => {
+          const nomeCliente =
+            r.clienteNome || r.cliente || r.nomeCliente || r.razaoSocialCliente || "";
+          return filtros.cliente.includes(nomeCliente);
+        });
+      if (filtros.destinatario?.length)
+        filtrados = filtrados.filter(r => filtros.destinatario.includes(r.destinatario));
+      if (filtros.nf?.length)
+        filtrados = filtrados.filter(r => filtros.nf.includes(String(r.numeroNotaFiscal)));
+
+      setRows(filtrados);
+    }
+  }, [allRows]);
+
   return (
     <div className="max-w-[97vw] mx-auto mt-8 bg-white rounded-2xl shadow-md border border-slate-200 p-6">
       <div className="flex items-center justify-between mb-4">
@@ -377,7 +445,6 @@ const onCellEdit = (params: any) => {
         </button>
       </div>
 
-      {/* Filtros originais */}
       <div className="flex flex-wrap gap-3 mb-4 items-center">
         <input
           type="date"
@@ -393,7 +460,7 @@ const onCellEdit = (params: any) => {
         />
       </div>
 
-      {/* Novo painel moderno de filtros */}
+      {/* Novo painel de filtros com persistência */}
       <FiltrosCTRC
         allRows={allRows}
         unidades={unidades}
@@ -402,65 +469,70 @@ const onCellEdit = (params: any) => {
           let filtrados = [...allRows];
 
           if (filtros.und?.length)
-            filtrados = filtrados.filter(r => filtros.und!.includes(r.unidade));
+            filtrados = filtrados.filter(r => filtros.und.includes(r.unidade));
 
           if (filtros.status?.length)
-            filtrados = filtrados.filter(r => filtros.status!.includes(String(r.statusEntregaId)));
+            filtrados = filtrados.filter(r => filtros.status.includes(String(r.statusEntregaId)));
 
           if (filtros.cliente?.length)
             filtrados = filtrados.filter(r => {
               const nomeCliente =
                 r.clienteNome || r.cliente || r.nomeCliente || r.razaoSocialCliente || "";
-              return filtros.cliente!.includes(nomeCliente);
+              return filtros.cliente.includes(nomeCliente);
             });
 
           if (filtros.destinatario?.length)
-            filtrados = filtrados.filter(r => filtros.destinatario!.includes(r.destinatario));
+            filtrados = filtrados.filter(r => filtros.destinatario.includes(r.destinatario));
 
           if (filtros.nf?.length)
-            filtrados = filtrados.filter(r => filtros.nf!.includes(String(r.numeroNotaFiscal)));
+            filtrados = filtrados.filter(r => filtros.nf.includes(String(r.numeroNotaFiscal)));
 
           setRows(filtrados);
+          setFiltrosAtuais(filtros);
+          localStorage.setItem("filtrosCTRC", JSON.stringify(filtros)); // 🔸 salva filtros
         }}
       />
 
-      {/* GRID */}
       <div style={{ height: "70vh", width: "100%" }}>
         <AgGridReact
-  {...({
-    deltaRowDataMode: true,
-    getRowId: (params: any) => params.data.id.toString(),
-  } as any)}
-  ref={gridRef}
-  onGridReady={autoSizeAllColumns}
-  theme={myTheme}
-  rowData={rows}
-  columnDefs={columnDefs}
-  onCellValueChanged={onCellEdit}
-  animateRows
-  pagination
-  paginationPageSize={25}
-  paginationPageSizeSelector={[25, 50, 100]}
-  rowHeight={34}
-  headerHeight={32}
-  // 👇👇 ADICIONE ISSO
-  enableCellTextSelection={true}
-  suppressCopyRowsToClipboard={false}
-  suppressClipboardPaste={false}
-  suppressMovableColumns={false}
-  enableRangeSelection={true}
-  ensureDomOrder={true}
-  // 👆👆 ESSENCIAIS
-  defaultColDef={{
-    resizable: true,
-    sortable: true,
-    filter: false,
-    floatingFilter: false,
-    wrapText: false,
-    autoHeight: false,
-  }}
-/>
+          {...({
+            deltaRowDataMode: true,
+            getRowId: (params: any) => params.data.id.toString(),
+          } as any)}
+          ref={gridRef}
+          onGridReady={autoSizeAllColumns}
+          theme={myTheme}
+          rowData={rows}
+          columnDefs={columnDefs}
+          onCellValueChanged={onCellEdit}
+          animateRows
+          pagination
+          paginationPageSize={25}
+          paginationPageSizeSelector={[25, 50, 100]}
+          rowHeight={34}
+          headerHeight={32}
+          enableCellTextSelection={true}
+          suppressCopyRowsToClipboard={false}
+          suppressClipboardPaste={false}
+          suppressMovableColumns={false}
+          enableRangeSelection={true}
+          ensureDomOrder={true}
+          defaultColDef={{
+            resizable: true,
+            sortable: true,
+            filter: false,
+            floatingFilter: false,
+            wrapText: false,
+            autoHeight: false,
+          }}
+        />
       </div>
+      <AgendaModal
+        visible={agendaModalVisible}
+        onClose={() => setAgendaModalVisible(false)}
+        ctrcId={agendaCTRCId}
+        onSave={handleSalvarAgenda}
+      />
     </div>
   );
 }
