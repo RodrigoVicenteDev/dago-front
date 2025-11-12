@@ -163,8 +163,7 @@ export default function MinhaTabelaPage() {
 
       for (const id of ids) {
         const dto = dirty[Number(id)];
-        const dataEntrega =
-          dto.DataEntregaRealizada ?? dto.dataEntregaRealizada ?? null;
+        const dataEntrega = dto.DataEntregaRealizada ?? dto.dataEntregaRealizada ?? null;
 
         let dataISO = null;
         if (dataEntrega) {
@@ -202,98 +201,121 @@ export default function MinhaTabelaPage() {
   }, [dirty]);
 
   // ✏️ edição inline
-  const onCellEdit = (params: any) => {
-    const { id } = params.data;
-    const field = params.colDef.field as string;
-    let value = params.newValue ?? params.value ?? params.data?.[field] ?? null;
+const onCellEdit = (params: any) => {
+  const gridApi = gridRef.current?.api;
+  const { id } = params.data;
+  const field = params.colDef.field as string;
+  let value = params.newValue ?? params.value ?? params.data?.[field] ?? null;
 
-    if (field === "statusEntregaId") {
-      const asNumber = Number(value);
-      if (!isNaN(asNumber)) value = asNumber;
+  // 🧭 Ajustes de tipo
+  if (field === "statusEntregaId") {
+    const asNumber = Number(value);
+    if (!isNaN(asNumber)) value = asNumber;
+  }
+
+  if (field === "dataEntregaRealizada" && value) {
+    let parsed: Date | null = null;
+    if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+      const [dia, mes, ano] = value.split("/").map(Number);
+      parsed = new Date(ano, mes - 1, dia);
+    } else parsed = new Date(value);
+    if (parsed && !isNaN(parsed.getTime())) value = parsed.toISOString();
+    else value = null;
+  }
+
+  // 🧠 Atualiza diretamente o node (não recria o array)
+  if (gridApi) {
+    const node = gridApi.getRowNode(id);
+    if (node) {
+      node.setDataValue(field, value);
     }
+  }
 
-    if (field === "dataEntregaRealizada" && value) {
-      let parsed: Date | null = null;
-      if (typeof value === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-        const [dia, mes, ano] = value.split("/").map(Number);
-        parsed = new Date(ano, mes - 1, dia);
-      } else parsed = new Date(value);
-      if (parsed && !isNaN(parsed.getTime())) value = parsed.toISOString();
-      else value = null;
-    }
-
-    setRows(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
-    setAllRows(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
-
-    const fieldMap: Record<string, string> = {
-      dataEntregaRealizada: "DataEntregaRealizada",
-      statusEntregaId: "StatusEntregaId",
-      observacao: "Observacao",
-      descricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
-      ultimaDescricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
-    };
-    const backendField = fieldMap[field] || field;
-
-    setDirty(prev => {
-      const updated = {
-        ...(prev[id] || {}),
-        [backendField]: value,
-      };
-      return { ...prev, [id]: updated };
-    });
+  // 🔐 Atualiza dirty (para autosave)
+  const fieldMap: Record<string, string> = {
+    dataEntregaRealizada: "DataEntregaRealizada",
+    statusEntregaId: "StatusEntregaId",
+    observacao: "Observacao",
+    descricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
+    ultimaDescricaoOcorrenciaAtendimento: "DescricaoOcorrenciaAtendimento",
   };
+  const backendField = fieldMap[field] || field;
+
+  setDirty(prev => {
+    const updated = {
+      ...(prev[id] || {}),
+      [backendField]: value,
+    };
+    return { ...prev, [id]: updated };
+  });
+};
+
 
   const columnDefs = [
     { headerName: "CTRC", field: "ctrc", minWidth: 130 },
-    { headerName: "Emissão", field: "dataEmissao", minWidth: 130, valueFormatter: (p: any) => formatDate(p.value) },
+    {
+      headerName: "Emissão",
+      field: "dataEmissao",
+      minWidth: 130,
+      valueFormatter: (p: any) => formatDate(p.value),
+    },
     { headerName: "Destinatário", field: "destinatario", minWidth: 220 },
     { headerName: "Cidade Entrega", field: "cidadeEntrega", minWidth: 180 },
     { headerName: "UF", field: "uf", minWidth: 70 },
     { headerName: "UND", field: "unidade", minWidth: 90 },
     { headerName: "NF", field: "numeroNotaFiscal", minWidth: 130 },
     { headerName: "Ocorrência Sistema", field: "ultimaOcorrenciaSistema", minWidth: 260 },
-    { headerName: "Ocorrência Atendimento", field: "ultimaDescricaoOcorrenciaAtendimento", editable: true, minWidth: 260 },
-    { headerName: "Lead Time", field: "dataPrevistaEntrega", minWidth: 130, valueFormatter: (p: any) => formatDate(p.value) },
     {
-      
-  headerName: "Data Entrega",
-  field: "dataEntregaRealizada",
-  editable: true,
-  minWidth: 130,
-
-  // ✅ usa input tipo "date" (sem hora)
-  cellEditorSelector: () => ({
-    component: "agDateCellEditor",
-    params: {
-      // limita intervalo aceitável
-      min: "2000-01-01",
-      max: "2099-12-31",
+      headerName: "Ocorrência Atendimento",
+      field: "ultimaDescricaoOcorrenciaAtendimento",
+      editable: true,
+      minWidth: 260,
     },
-  }),
+    {
+      headerName: "Lead Time",
+      field: "dataPrevistaEntrega",
+      minWidth: 130,
+      valueFormatter: (p: any) => formatDate(p.value),
+    },
+    {
+      headerName: "Data Entrega",
+      field: "dataEntregaRealizada",
+      editable: true,
+      minWidth: 130,
 
-  // ✅ formata valor exibido (dd/MM/yyyy)
-  cellRenderer: (p: any) => {
-    if (!p.value) return "";
-    const d = new Date(p.value);
-    if (isNaN(d.getTime())) return p.value;
-    return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
-  },
+      // ✅ usa input tipo "date" (sem hora)
+      cellEditorSelector: () => ({
+        component: "agDateCellEditor",
+        params: {
+          // limita intervalo aceitável
+          min: "2000-01-01",
+          max: "2099-12-31",
+        },
+      }),
 
-  // ✅ converte valor digitado para ISO (formato aceito no backend)
-  valueParser: (p: any) => {
-    if (!p.newValue) return null;
-    const v = p.newValue;
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
-      const [d, m, y] = v.split("/").map(Number);
-      return new Date(y, m - 1, d).toISOString();
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-      return new Date(v).toISOString();
-    }
-    return v;
-  },
+      // ✅ formata valor exibido (dd/MM/yyyy)
+      cellRenderer: (p: any) => {
+        if (!p.value) return "";
+        const d = new Date(p.value);
+        if (isNaN(d.getTime())) return p.value;
+        return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+      },
 
-  cellClass: "whitespace-nowrap",
-},
+      // ✅ converte valor digitado para ISO (formato aceito no backend)
+      valueParser: (p: any) => {
+        if (!p.newValue) return null;
+        const v = p.newValue;
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+          const [d, m, y] = v.split("/").map(Number);
+          return new Date(y, m - 1, d).toISOString();
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+          return new Date(v).toISOString();
+        }
+        return v;
+      },
+
+      cellClass: "whitespace-nowrap",
+    },
 
     {
       headerName: "Status",
@@ -369,70 +391,75 @@ export default function MinhaTabelaPage() {
           onChange={e => setPeriodo(p => ({ ...p, dataFim: e.target.value }))}
           className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
         />
-       
       </div>
 
       {/* Novo painel moderno de filtros */}
       <FiltrosCTRC
-  allRows={allRows}
-  unidades={unidades}
-  statuses={statuses}
-  onFiltrar={(filtros) => {
-    let filtrados = [...allRows];
+        allRows={allRows}
+        unidades={unidades}
+        statuses={statuses}
+        onFiltrar={filtros => {
+          let filtrados = [...allRows];
 
-   if (filtros.und?.length)
-  filtrados = filtrados.filter(r => filtros.und!.includes(r.unidade));
+          if (filtros.und?.length)
+            filtrados = filtrados.filter(r => filtros.und!.includes(r.unidade));
 
-    if (filtros.status?.length)
-      filtrados = filtrados.filter(r =>
-        filtros.status!.includes(String(r.statusEntregaId))
-      );
+          if (filtros.status?.length)
+            filtrados = filtrados.filter(r => filtros.status!.includes(String(r.statusEntregaId)));
 
-    if (filtros.cliente?.length)
-      filtrados = filtrados.filter(r => {
-        const nomeCliente =
-          r.clienteNome || r.cliente || r.nomeCliente || r.razaoSocialCliente || "";
-        return filtros.cliente!.includes(nomeCliente);
-      });
+          if (filtros.cliente?.length)
+            filtrados = filtrados.filter(r => {
+              const nomeCliente =
+                r.clienteNome || r.cliente || r.nomeCliente || r.razaoSocialCliente || "";
+              return filtros.cliente!.includes(nomeCliente);
+            });
 
-    if (filtros.destinatario?.length)
-      filtrados = filtrados.filter(r =>
-        filtros.destinatario!.includes(r.destinatario)
-      );
+          if (filtros.destinatario?.length)
+            filtrados = filtrados.filter(r => filtros.destinatario!.includes(r.destinatario));
 
-      if (filtros.nf?.length)
-  filtrados = filtrados.filter(r =>
-    filtros.nf!.includes(String(r.numeroNotaFiscal))
-  );
+          if (filtros.nf?.length)
+            filtrados = filtrados.filter(r => filtros.nf!.includes(String(r.numeroNotaFiscal)));
 
-    setRows(filtrados);
-  }}
-/>
+          setRows(filtrados);
+        }}
+      />
 
       {/* GRID */}
       <div style={{ height: "70vh", width: "100%" }}>
         <AgGridReact
-          ref={gridRef}
-          onGridReady={autoSizeAllColumns}
-          theme={myTheme}
-          rowData={rows}
-          columnDefs={columnDefs}
-          onCellValueChanged={onCellEdit}
-          animateRows
-          pagination
-          paginationPageSize={25}
-          paginationPageSizeSelector={[25, 50, 100]}
-          rowHeight={34}
-          headerHeight={32}
-          defaultColDef={{
-            resizable: true,
-            sortable: true,
-            filter: false,
-            floatingFilter: false,
-            wrapText: false,
-            autoHeight: false,
-          }}
-        />
+  {...({
+    deltaRowDataMode: true,
+    getRowId: (params: any) => params.data.id.toString(),
+  } as any)}
+  ref={gridRef}
+  onGridReady={autoSizeAllColumns}
+  theme={myTheme}
+  rowData={rows}
+  columnDefs={columnDefs}
+  onCellValueChanged={onCellEdit}
+  animateRows
+  pagination
+  paginationPageSize={25}
+  paginationPageSizeSelector={[25, 50, 100]}
+  rowHeight={34}
+  headerHeight={32}
+  // 👇👇 ADICIONE ISSO
+  enableCellTextSelection={true}
+  suppressCopyRowsToClipboard={false}
+  suppressClipboardPaste={false}
+  suppressMovableColumns={false}
+  enableRangeSelection={true}
+  ensureDomOrder={true}
+  // 👆👆 ESSENCIAIS
+  defaultColDef={{
+    resizable: true,
+    sortable: true,
+    filter: false,
+    floatingFilter: false,
+    wrapText: false,
+    autoHeight: false,
+  }}
+/>
       </div>
     </div>
   );
