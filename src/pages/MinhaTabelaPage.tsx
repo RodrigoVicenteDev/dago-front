@@ -31,7 +31,7 @@ const myTheme = themeQuartz.withPart(iconSetQuartzLight).withParams({
 type StatusEntrega = { id: number; nome: string };
 
 export default function MinhaTabelaPage() {
-  const { token } = useAuth();
+  const { token, usuario } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [allRows, setAllRows] = useState<any[]>([]);
@@ -52,6 +52,12 @@ export default function MinhaTabelaPage() {
   const [agendaModalVisible, setAgendaModalVisible] = useState(false);
   const [agendaCTRCId, setAgendaCTRCId] = useState<number | null>(null);
   const [agendaDataAtual, setAgendaDataAtual] = useState<string | null>(null);
+
+  const ESPORADICO_ID = 3573;
+
+const isEsporadico = usuario?.clientes?.some(
+  c => Number(c.id) === ESPORADICO_ID
+);
 
   const handleAbrirAgendaModal = (id: number, data: string | null) => {
     setAgendaCTRCId(id);
@@ -271,6 +277,9 @@ export default function MinhaTabelaPage() {
       minWidth: 130,
       valueFormatter: (p: any) => formatDate(p.value),
     },
+    ...(isEsporadico
+    ? [{ headerName: "Cliente", field: "cliente", minWidth: 220 }]
+    : []),
     { headerName: "Destinatário", field: "destinatario", minWidth: 220 },
     { headerName: "Cidade Entrega", field: "cidadeEntrega", minWidth: 180 },
     { headerName: "UF", field: "uf", minWidth: 70 },
