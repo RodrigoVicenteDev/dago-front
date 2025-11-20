@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Trash2, Building2, Plus } from "lucide-react";
+import { Trash2, Building2, Plus, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Cliente {
@@ -18,13 +18,15 @@ export default function ClientesPage() {
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientesFiltrados, setClientesFiltrados] = useState<Cliente[]>([]);
+  const [filtro, setFiltro] = useState("");
+
   const [nome, setNome] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [mensagem, setMensagem] = useState<string | null>(null);
 
-  // 🔹 listar clientes ao carregar
   useEffect(() => {
     listarClientes();
   }, []);
@@ -35,13 +37,25 @@ export default function ClientesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setClientes(res.data);
+      setClientesFiltrados(res.data); // inicial
     } catch (err) {
       console.error(err);
       setErro("Erro ao listar clientes.");
     }
   }
 
-  // 🔹 cadastrar novo cliente
+  // 🔎 FILTRO LOCAL
+  useEffect(() => {
+    const f = filtro.toLowerCase();
+
+    const filtrados = clientes.filter((c) =>
+      c.nome.toLowerCase().includes(f) ||
+      c.cnpj.toLowerCase().includes(f)
+    );
+
+    setClientesFiltrados(filtrados);
+  }, [filtro, clientes]);
+
   async function cadastrarCliente(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
@@ -67,14 +81,13 @@ export default function ClientesPage() {
     }
   }
 
-  // 🔹 deletar cliente
   async function deletarCliente(id: number) {
     if (!confirm("Deseja realmente excluir este cliente?")) return;
     try {
       await axios.delete(`${API_URL}/api/Cliente/deletar/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setClientes(clientes.filter(c => c.id !== id));
+      setClientes(clientes.filter((c) => c.id !== id));
     } catch (err) {
       console.error(err);
       alert("Erro ao excluir cliente.");
@@ -83,11 +96,26 @@ export default function ClientesPage() {
 
   return (
     <div className="max-w-5xl mx-auto mt-8 bg-white rounded-2xl shadow-md border border-slate-200 p-8">
-      {/* Título */}
+
+      {/* Título + Filtro */}
       <div className="flex items-center justify-between mb-6">
+
         <h1 className="text-2xl font-semibold text-slate-800 flex items-center gap-2">
           <Building2 className="text-emerald-500" /> Clientes
         </h1>
+
+        {/* 🔍 Filtro */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input
+            type="text"
+            placeholder="Filtrar clientes..."
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            className="w-64 rounded-lg border border-slate-300 pl-10 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-400 outline-none"
+          />
+        </div>
+
       </div>
 
       {/* Formulário */}
@@ -102,7 +130,7 @@ export default function ClientesPage() {
           <input
             type="text"
             value={nome}
-            onChange={e => setNome(e.target.value)}
+            onChange={(e) => setNome(e.target.value)}
             required
             className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-400 outline-none"
             placeholder="Nome do cliente"
@@ -115,7 +143,7 @@ export default function ClientesPage() {
           <input
             type="text"
             value={cnpj}
-            onChange={e => setCnpj(e.target.value)}
+            onChange={(e) => setCnpj(e.target.value)}
             required
             className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-400 outline-none"
             placeholder="00.000.000/0000-00"
@@ -143,7 +171,7 @@ export default function ClientesPage() {
         </div>
       )}
 
-      {/* Tabela de clientes */}
+      {/* Tabela */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
@@ -156,15 +184,13 @@ export default function ClientesPage() {
             </tr>
           </thead>
           <tbody>
-            {clientes.map(cliente => (
+            {clientesFiltrados.map((cliente) => (
               <tr
                 key={cliente.id}
                 className="hover:bg-slate-50 border-b border-slate-100"
               >
                 <td className="p-3">{cliente.id}</td>
-                <td className="p-3 font-medium text-slate-800">
-                  {cliente.nome}
-                </td>
+                <td className="p-3 font-medium text-slate-800">{cliente.nome}</td>
                 <td className="p-3 text-slate-600">{cliente.cnpj}</td>
                 <td className="p-3 text-slate-600">
                   {cliente.usuario ? cliente.usuario.nome : "-"}
@@ -181,10 +207,10 @@ export default function ClientesPage() {
               </tr>
             ))}
 
-            {clientes.length === 0 && (
+            {clientesFiltrados.length === 0 && (
               <tr>
                 <td colSpan={5} className="text-center p-6 text-slate-500">
-                  Nenhum cliente cadastrado.
+                  Nenhum cliente encontrado.
                 </td>
               </tr>
             )}

@@ -1,13 +1,14 @@
-import Sidebar from "@/components/Sidebar";
+import Topbar from "@/components/Topbar";
 import { Outlet } from "react-router-dom";
 
 export default function DashboardLayout() {
   return (
-    <div className="flex h-screen">
-      {/* sidebar fixa */}
-      <Sidebar />
+    <div className="flex flex-col h-screen">
 
-      {/* área principal (onde cada página aparece) */}
+      {/* 🔥 Nova barra superior */}
+      <Topbar />
+
+      {/* Área principal */}
       <main className="flex-1 bg-white overflow-y-auto p-6">
         <Outlet />
       </main>

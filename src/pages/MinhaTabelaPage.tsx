@@ -205,8 +205,14 @@ const isEsporadico = usuario?.clientes?.some(
             dto.descricaoOcorrenciaAtendimento ??
             dto.ultimaDescricaoOcorrenciaAtendimento ??
             null,
+            tipoOcorrenciaId:
+                (dto.DescricaoOcorrenciaAtendimento ??
+                dto.descricaoOcorrenciaAtendimento ??
+                dto.ultimaDescricaoOcorrenciaAtendimento)
+                  ? 1
+                  : null,
         };
-
+            console.log(payload)
         try {
           await axios.put(`${API_URL}/api/ctrcs/${id}`, payload, {
             headers: { Authorization: `Bearer ${token}` },
@@ -391,7 +397,7 @@ const isEsporadico = usuario?.clientes?.some(
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: "6%",
+          width: "4%",
           height: "20px",
           margin: "7px",
           boxShadow: "0 1px 2px rgba(0,0,0,0.1)",

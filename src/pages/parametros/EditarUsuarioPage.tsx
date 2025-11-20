@@ -29,6 +29,7 @@ export default function EditarUsuarioPage() {
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL;
 
+  const [filtroDisponiveis, setFiltroDisponiveis] = useState("");
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [clientesDisponiveis, setClientesDisponiveis] = useState<Cliente[]>([]);
@@ -40,6 +41,12 @@ export default function EditarUsuarioPage() {
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+
+  const clientesDisponiveisFiltrados = clientesDisponiveis.filter(
+    c =>
+      c.nome.toLowerCase().includes(filtroDisponiveis.toLowerCase()) ||
+      c.cnpj.toLowerCase().includes(filtroDisponiveis.toLowerCase()),
+  );
 
   // 🔹 carregar usuário, cargos e clientes
   useEffect(() => {
@@ -67,9 +74,7 @@ export default function EditarUsuarioPage() {
 
         // filtra clientes não atribuídos
         const atribuIds = new Set(u.clientes.map(c => c.id));
-        const disponiveis = clientesRes.data.filter(
-          (c: Cliente) => !atribuIds.has(c.id)
-        );
+        const disponiveis = clientesRes.data.filter((c: Cliente) => !atribuIds.has(c.id));
         setClientesDisponiveis(disponiveis);
       } catch (err) {
         console.error(err);
@@ -113,14 +118,13 @@ export default function EditarUsuarioPage() {
           cargoId,
           clientesIds: clientesAtribuidos.map(c => c.id),
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setMensagem("Usuário atualizado com sucesso!");
       setTimeout(() => navigate("/parametros/usuarios"), 1500);
     } catch (err: any) {
-  console.error("Erro no cadastro:", err.response?.data);
-  alert("Erro 400: " + JSON.stringify(err.response?.data, null, 2));
-
+      console.error("Erro no cadastro:", err.response?.data);
+      alert("Erro 400: " + JSON.stringify(err.response?.data, null, 2));
     } finally {
       setSalvando(false);
     }
@@ -154,9 +158,7 @@ export default function EditarUsuarioPage() {
         {/* Campos básicos */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Nome
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
             <input
               type="text"
               value={nome}
@@ -166,9 +168,7 @@ export default function EditarUsuarioPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              E-mail
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">E-mail</label>
             <input
               type="email"
               value={email}
@@ -178,9 +178,7 @@ export default function EditarUsuarioPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Cargo
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Cargo</label>
             <select
               value={cargoId}
               onChange={e => setCargoId(Number(e.target.value))}
@@ -197,26 +195,31 @@ export default function EditarUsuarioPage() {
 
         {/* Dual list */}
         <div>
-          <h2 className="text-lg font-semibold text-slate-700 mb-3">
-            Atribuição de Clientes
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-700 mb-3">Atribuição de Clientes</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
             {/* Esquerda */}
             <div className="border rounded-lg p-3 bg-slate-50 h-64 overflow-y-auto">
-              <p className="text-sm text-slate-500 font-medium mb-2">
-                Clientes disponíveis
-              </p>
-              {clientesDisponiveis.length === 0 ? (
-                <p className="text-slate-400 text-sm">Nenhum disponível</p>
+              <p className="text-sm text-slate-500 font-medium mb-2">Clientes disponíveis</p>
+              {/* 🔎 filtro */}
+              <div className="mb-2">
+                <input
+                  type="text"
+                  placeholder="Filtrar..."
+                  value={filtroDisponiveis}
+                  onChange={e => setFiltroDisponiveis(e.target.value)}
+                  className="w-full border border-slate-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-emerald-400 outline-none"
+                />
+              </div>
+              {/* lista */}
+              {clientesDisponiveisFiltrados.length === 0 ? (
+                <p className="text-slate-400 text-sm">Nenhum encontrado</p>
               ) : (
-                clientesDisponiveis.map(c => (
+                clientesDisponiveisFiltrados.map(c => (
                   <div
                     key={c.id}
                     className="flex justify-between items-center bg-white rounded-md px-3 py-2 mb-2 border hover:shadow-sm"
                   >
-                    <span className="text-slate-700 text-sm font-medium">
-                      {c.nome}
-                    </span>
+                    <span className="text-slate-700 text-sm font-medium">{c.nome}</span>
                     <button
                       type="button"
                       onClick={() => moverCliente(c.id, "atribuir")}
@@ -239,9 +242,7 @@ export default function EditarUsuarioPage() {
 
             {/* Direita */}
             <div className="border rounded-lg p-3 bg-slate-50 h-64 overflow-y-auto">
-              <p className="text-sm text-slate-500 font-medium mb-2">
-                Clientes atribuídos
-              </p>
+              <p className="text-sm text-slate-500 font-medium mb-2">Clientes atribuídos</p>
               {clientesAtribuidos.length === 0 ? (
                 <p className="text-slate-400 text-sm">Nenhum atribuído</p>
               ) : (
@@ -250,9 +251,7 @@ export default function EditarUsuarioPage() {
                     key={c.id}
                     className="flex justify-between items-center bg-white rounded-md px-3 py-2 mb-2 border hover:shadow-sm"
                   >
-                    <span className="text-slate-700 text-sm font-medium">
-                      {c.nome}
-                    </span>
+                    <span className="text-slate-700 text-sm font-medium">{c.nome}</span>
                     <button
                       type="button"
                       onClick={() => moverCliente(c.id, "remover")}
