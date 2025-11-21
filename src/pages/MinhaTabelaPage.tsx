@@ -55,9 +55,7 @@ export default function MinhaTabelaPage() {
 
   const ESPORADICO_ID = 3573;
 
-const isEsporadico = usuario?.clientes?.some(
-  c => Number(c.id) === ESPORADICO_ID
-);
+  const isEsporadico = usuario?.clientes?.some(c => Number(c.id) === ESPORADICO_ID);
 
   const handleAbrirAgendaModal = (id: number, data: string | null) => {
     setAgendaCTRCId(id);
@@ -205,14 +203,14 @@ const isEsporadico = usuario?.clientes?.some(
             dto.descricaoOcorrenciaAtendimento ??
             dto.ultimaDescricaoOcorrenciaAtendimento ??
             null,
-            tipoOcorrenciaId:
-                (dto.DescricaoOcorrenciaAtendimento ??
-                dto.descricaoOcorrenciaAtendimento ??
-                dto.ultimaDescricaoOcorrenciaAtendimento)
-                  ? 1
-                  : null,
+          tipoOcorrenciaId:
+            (dto.DescricaoOcorrenciaAtendimento ??
+            dto.descricaoOcorrenciaAtendimento ??
+            dto.ultimaDescricaoOcorrenciaAtendimento)
+              ? 1
+              : null,
         };
-            console.log(payload)
+        console.log(payload);
         try {
           await axios.put(`${API_URL}/api/ctrcs/${id}`, payload, {
             headers: { Authorization: `Bearer ${token}` },
@@ -283,9 +281,7 @@ const isEsporadico = usuario?.clientes?.some(
       minWidth: 130,
       valueFormatter: (p: any) => formatDate(p.value),
     },
-    ...(isEsporadico
-    ? [{ headerName: "Cliente", field: "cliente", minWidth: 220 }]
-    : []),
+    ...(isEsporadico ? [{ headerName: "Cliente", field: "cliente", minWidth: 220 }] : []),
     { headerName: "Destinatário", field: "destinatario", minWidth: 220 },
     { headerName: "Cidade Entrega", field: "cidadeEntrega", minWidth: 180 },
     { headerName: "UF", field: "uf", minWidth: 70 },
@@ -501,6 +497,8 @@ const isEsporadico = usuario?.clientes?.some(
 
           if (filtros.nf?.length)
             filtrados = filtrados.filter(r => filtros.nf.includes(String(r.numeroNotaFiscal)));
+
+          if (filtros.uf?.length) filtrados = filtrados.filter(r => filtros.uf!.includes(r.uf));
 
           setRows(filtrados);
           setFiltrosAtuais(filtros);

@@ -13,6 +13,7 @@ interface Props {
     cliente?: string[];
     destinatario?: string[];
     nf?: string[];
+    uf?:string[];
   }) => void;
 }
 
@@ -27,6 +28,7 @@ export default function FiltrosCTRC({
   const [filtroCliente, setFiltroCliente] = useState<string[]>([]);
   const [filtroDestinatario, setFiltroDestinatario] = useState<string[]>([]);
   const [filtroNF, setFiltroNF] = useState<string[]>([]);
+  const [filtroUF, setFiltroUF] = useState<string[]>([]);
 
   // 📋 listas únicas com fallback automático
   const clientes = Array.from(
@@ -46,6 +48,10 @@ export default function FiltrosCTRC({
     new Set(allRows.map((r) => r.numeroNotaFiscal))
   ).filter(Boolean);
 
+  const ufs = Array.from(
+  new Set(allRows.map(r => r.uf))
+).filter(Boolean);
+
   // 🔁 dispara callback sempre que filtros mudam
   useEffect(() => {
     onFiltrar({
@@ -54,8 +60,9 @@ export default function FiltrosCTRC({
       cliente: filtroCliente,
       destinatario: filtroDestinatario,
       nf: filtroNF,
+      uf: filtroUF.length ? filtroUF : undefined,
     });
-  }, [filtroUnd, filtroStatus, filtroCliente, filtroDestinatario, filtroNF]);
+  }, [filtroUnd, filtroStatus, filtroCliente, filtroDestinatario, filtroNF,filtroUF]);
 
   // 🎨 estilos globais dos selects
   const selectStyles = {
@@ -110,6 +117,21 @@ export default function FiltrosCTRC({
           menuPosition="fixed"
         />
       </div>
+      {/* UF */}
+<div className="flex flex-col text-xs min-w-[120px]">
+  <label className="text-slate-600 mb-1 font-medium">UF</label>
+  <Select
+    isMulti
+    value={filtroUF.map(v => ({ value: v, label: v }))}
+    onChange={opts => setFiltroUF(opts.map(o => o.value))}
+    options={ufs.map(uf => ({ value: uf, label: uf }))}
+    placeholder="UF..."
+    closeMenuOnSelect={false}
+    styles={selectStyles}
+    menuPortalTarget={document.body}
+    menuPosition="fixed"
+  />
+</div>
 
       {/* STATUS */}
       <div className="flex flex-col text-xs min-w-[220px]">
