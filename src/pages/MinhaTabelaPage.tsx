@@ -76,7 +76,7 @@ export default function MinhaTabelaPage() {
     const hoje = new Date();
     const fim = hoje.toISOString().split("T")[0];
     const inicio = new Date();
-    inicio.setDate(inicio.getDate() - 30);
+    inicio.setDate(inicio.getDate() - 60);
     const inicioStr = inicio.toISOString().split("T")[0];
     setPeriodo({ dataInicio: inicioStr, dataFim: fim });
   }, []);
@@ -394,7 +394,7 @@ export default function MinhaTabelaPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: "4%",
+          width: "5%",
           height: "20px",
           margin: "7px",
           boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
