@@ -1,4 +1,5 @@
-import Topbar from "@/components/Topbar";
+
+import Topbar from "@/components/TopBar";
 import { Outlet } from "react-router-dom";
 
 export default function DashboardLayout() {

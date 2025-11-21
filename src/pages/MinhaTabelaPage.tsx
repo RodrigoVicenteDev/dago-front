@@ -11,6 +11,7 @@ import { CalendarDays, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import FiltrosCTRC from "@/components/FiltrosCTRC";
 import AgendaModal from "@/components/AgendaModal";
+import ExportExcelButton from "@/components/ExportExcelButton";
 
 // registra módulos community
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -442,10 +443,11 @@ export default function MinhaTabelaPage() {
 
   return (
     <div className="max-w-[97vw] mx-auto mt-8 bg-white rounded-2xl shadow-md border border-slate-200 p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-start mb-4">
         <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
           <CalendarDays className="text-emerald-500" /> Minha Tabela de CTRCs
         </h1>
+        <div className="flex gap-2 ml-auto">
         <button
           onClick={fetchGrid}
           disabled={loading}
@@ -454,6 +456,9 @@ export default function MinhaTabelaPage() {
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           {loading ? "Carregando..." : "Atualizar"}
         </button>
+        <ExportExcelButton rows={rows} fileName="CTRCs.xlsx" label="Exportar Excel" />
+        </div>
+        
       </div>
 
       <div className="flex flex-wrap gap-3 mb-4 items-center">
