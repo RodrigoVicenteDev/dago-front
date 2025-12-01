@@ -44,7 +44,7 @@ export default function Topbar() {
   return (
     <div className="w-full h-14 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border-b border-white/10 shadow-lg flex items-center px-4 select-none">
       {/* LOGO */}
-      <div className="flex items-center gap-2 cursor-pointer" onClick={() => go("/usuarios")}>
+      <div className="flex items-center gap-2 cursor-pointer" onClick={() => go("/painel")}>
         <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">
           <span className="text-emerald-400 font-bold">DG</span>
         </div>

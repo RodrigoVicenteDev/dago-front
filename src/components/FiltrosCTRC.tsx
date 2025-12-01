@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Select from "react-select";
 
 type StatusEntrega = { id: number; nome: string };
@@ -13,7 +13,6 @@ interface Props {
     cliente?: string[];
     destinatario?: string[];
     nf?: string[];
-    uf?:string[];
   }) => void;
 }
 
@@ -28,14 +27,17 @@ export default function FiltrosCTRC({
   const [filtroCliente, setFiltroCliente] = useState<string[]>([]);
   const [filtroDestinatario, setFiltroDestinatario] = useState<string[]>([]);
   const [filtroNF, setFiltroNF] = useState<string[]>([]);
-  const [filtroUF, setFiltroUF] = useState<string[]>([]);
 
   // 📋 listas únicas com fallback automático
   const clientes = Array.from(
     new Set(
       allRows.map(
         (r) =>
-          r.clienteNome || r.cliente || r.nomeCliente || r.razaoSocialCliente || ""
+          r.clienteNome ||
+          r.cliente ||
+          r.nomeCliente ||
+          r.razaoSocialCliente ||
+          ""
       )
     )
   ).filter(Boolean);
@@ -48,21 +50,28 @@ export default function FiltrosCTRC({
     new Set(allRows.map((r) => r.numeroNotaFiscal))
   ).filter(Boolean);
 
-  const ufs = Array.from(
-  new Set(allRows.map(r => r.uf))
-).filter(Boolean);
+  // 🔁 helper para aplicar filtros sempre baseando no estado atual
+  const aplicarFiltros = (overrides?: {
+    und?: string[];
+    status?: string[];
+    cliente?: string[];
+    destinatario?: string[];
+    nf?: string[];
+  }) => {
+    const und = overrides?.und ?? filtroUnd;
+    const status = overrides?.status ?? filtroStatus;
+    const cliente = overrides?.cliente ?? filtroCliente;
+    const destinatario = overrides?.destinatario ?? filtroDestinatario;
+    const nf = overrides?.nf ?? filtroNF;
 
-  // 🔁 dispara callback sempre que filtros mudam
-  useEffect(() => {
     onFiltrar({
-      und: filtroUnd.length ? filtroUnd : undefined,
-      status: filtroStatus,
-      cliente: filtroCliente,
-      destinatario: filtroDestinatario,
-      nf: filtroNF,
-      uf: filtroUF.length ? filtroUF : undefined,
+      und: und.length ? und : undefined,
+      status,
+      cliente,
+      destinatario,
+      nf,
     });
-  }, [filtroUnd, filtroStatus, filtroCliente, filtroDestinatario, filtroNF,filtroUF]);
+  };
 
   // 🎨 estilos globais dos selects
   const selectStyles = {
@@ -98,6 +107,16 @@ export default function FiltrosCTRC({
     setFiltroCliente([]);
     setFiltroDestinatario([]);
     setFiltroNF([]);
+    localStorage.removeItem("filtroDashboardCtrcs");
+    localStorage.setItem("filtrosCTRC", "");
+
+    aplicarFiltros({
+      und: [],
+      status: [],
+      cliente: [],
+      destinatario: [],
+      nf: [],
+    });
   };
 
   return (
@@ -108,7 +127,11 @@ export default function FiltrosCTRC({
         <Select
           isMulti
           value={filtroUnd.map((v) => ({ value: v, label: v }))}
-          onChange={(opts) => setFiltroUnd(opts.map((o) => o.value))}
+          onChange={(opts) => {
+            const valores = opts.map((o: any) => o.value);
+            setFiltroUnd(valores);
+            aplicarFiltros({ und: valores });
+          }}
           options={unidades.map((u) => ({ value: u, label: u }))}
           placeholder="Selecione unidades..."
           closeMenuOnSelect={false}
@@ -117,21 +140,6 @@ export default function FiltrosCTRC({
           menuPosition="fixed"
         />
       </div>
-      {/* UF */}
-<div className="flex flex-col text-xs min-w-[120px]">
-  <label className="text-slate-600 mb-1 font-medium">UF</label>
-  <Select
-    isMulti
-    value={filtroUF.map(v => ({ value: v, label: v }))}
-    onChange={opts => setFiltroUF(opts.map(o => o.value))}
-    options={ufs.map(uf => ({ value: uf, label: uf }))}
-    placeholder="UF..."
-    closeMenuOnSelect={false}
-    styles={selectStyles}
-    menuPortalTarget={document.body}
-    menuPosition="fixed"
-  />
-</div>
 
       {/* STATUS */}
       <div className="flex flex-col text-xs min-w-[220px]">
@@ -142,7 +150,11 @@ export default function FiltrosCTRC({
             value: v,
             label: statuses.find((s) => s.id === Number(v))?.nome || v,
           }))}
-          onChange={(opts) => setFiltroStatus(opts.map((o) => o.value))}
+          onChange={(opts) => {
+            const valores = opts.map((o: any) => o.value);
+            setFiltroStatus(valores);
+            aplicarFiltros({ status: valores });
+          }}
           options={statuses.map((s) => ({ value: String(s.id), label: s.nome }))}
           placeholder="Selecione status..."
           closeMenuOnSelect={false}
@@ -158,7 +170,11 @@ export default function FiltrosCTRC({
         <Select
           isMulti
           value={filtroCliente.map((v) => ({ value: v, label: v }))}
-          onChange={(opts) => setFiltroCliente(opts.map((o) => o.value))}
+          onChange={(opts) => {
+            const valores = opts.map((o: any) => o.value);
+            setFiltroCliente(valores);
+            aplicarFiltros({ cliente: valores });
+          }}
           options={clientes.map((c) => ({ value: c, label: c }))}
           placeholder="Selecione cliente..."
           closeMenuOnSelect={false}
@@ -174,7 +190,11 @@ export default function FiltrosCTRC({
         <Select
           isMulti
           value={filtroDestinatario.map((v) => ({ value: v, label: v }))}
-          onChange={(opts) => setFiltroDestinatario(opts.map((o) => o.value))}
+          onChange={(opts) => {
+            const valores = opts.map((o: any) => o.value);
+            setFiltroDestinatario(valores);
+            aplicarFiltros({ destinatario: valores });
+          }}
           options={destinatarios.map((d) => ({ value: d, label: d }))}
           placeholder="Selecione destinatário..."
           closeMenuOnSelect={false}
@@ -190,7 +210,11 @@ export default function FiltrosCTRC({
         <Select
           isMulti
           value={filtroNF.map((v) => ({ value: v, label: v }))}
-          onChange={(opts) => setFiltroNF(opts.map((o) => o.value))}
+          onChange={(opts) => {
+            const valores = opts.map((o: any) => o.value);
+            setFiltroNF(valores);
+            aplicarFiltros({ nf: valores });
+          }}
           options={nfs.map((n) => ({ value: n, label: n }))}
           placeholder="Selecione NF..."
           closeMenuOnSelect={false}

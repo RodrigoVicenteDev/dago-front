@@ -15,6 +15,7 @@ import GerenciarSenhasPage from "./pages/parametros/GerenciarSenhasPage";
 import Csv455Page from "./pages/parametros/Uploads/Csv455Page";
 import MinhaTabelaPage from "./pages/MinhaTabelaPage";
 import EsporadicosPage from "./pages/parametros/EsporadicosPage";
+import DashboardHome from "./pages/Painel/DashboardHome";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             }
           >
             <Route path="usuarios" element={<UsersPage />} />
+            <Route path="painel" element={<DashboardHome />} />
             {/* futuras rotas internas aqui */}
 
             <Route path="parametros/esporadicos" element={<EsporadicosPage />} />

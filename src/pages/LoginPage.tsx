@@ -28,7 +28,7 @@ export default function LoginPage() {
       login(token, usuario);
 
       // redireciona para o painel inicial (pode ser /usuarios ou /painel)
-      navigate("/usuarios");
+     navigate("/painel");
     } catch (err: any) {
       console.error(err);
       setErro(err?.response?.data?.message ?? "Usuário ou senha inválidos.");
