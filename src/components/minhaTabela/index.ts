@@ -1,7 +1,5 @@
-// src/components/minhaTabela/index.ts
-
-export { useCtrcData } from "./useCtrcData";
-export { useCtrcEditing } from "./useCtrcEditing";
+export { default as useCtrcData } from "./useCtrcData";
+export { default as useCtrcEditing } from "./useCtrcEditing";
 export { useCtrcFilters } from "./useCtrcFilters";
 
 export { default as CtrcToolbar } from "./CtrcToolbar";

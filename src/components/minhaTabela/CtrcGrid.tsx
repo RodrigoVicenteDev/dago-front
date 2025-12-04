@@ -1,9 +1,6 @@
 // src/components/minhaTabela/CtrcGrid.tsx
 import { AgGridReact } from "ag-grid-react";
-import {
-  themeQuartz,
-  iconSetQuartzLight,
-} from "ag-grid-community";
+import { themeQuartz, iconSetQuartzLight } from "ag-grid-community";
 import CtrcStatusCell from "./CtrcStatusCell";
 import CtrcAgendaCell from "./CtrcAgendaCell";
 
@@ -63,9 +60,7 @@ export default function CtrcGrid({
     },
 
     // Cliente só aparece para esporádico
-    ...(isEsporadico
-      ? [{ headerName: "Cliente", field: "cliente", minWidth: 220 }]
-      : []),
+    ...(isEsporadico ? [{ headerName: "Cliente", field: "cliente", minWidth: 220 }] : []),
 
     { headerName: "Destinatário", field: "destinatario", minWidth: 220 },
     { headerName: "Cidade Entrega", field: "cidadeEntrega", minWidth: 180 },
@@ -147,9 +142,7 @@ export default function CtrcGrid({
         values: statuses.map((s: any) => s.id),
       }),
       valueFormatter: (p: any) => statusesById[Number(p.value)] || "",
-      cellRenderer: (p: any) => (
-        <CtrcStatusCell value={p.value} statusesById={statusesById} />
-      ),
+      cellRenderer: (p: any) => <CtrcStatusCell value={p.value} statusesById={statusesById} />,
     },
 
     { headerName: "Observações", field: "observacao", editable: true, minWidth: 260 },
@@ -160,6 +153,7 @@ export default function CtrcGrid({
   return (
     <div style={{ height: "70vh", width: "100%" }}>
       <AgGridReact
+        
         ref={gridRef}
         onGridReady={autoSizeAllColumns}
         theme={myTheme}

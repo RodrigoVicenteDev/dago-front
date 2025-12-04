@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export function useCtrcDataPanel(initialRows: any[]) {
-  const { usuario } = useAuth();
+  const { usuario, token } = useAuth();
 
   const [allRows, setAllRows] = useState<any[]>(initialRows);
   const [rows, setRows] = useState<any[]>(initialRows);
@@ -80,6 +80,7 @@ export function useCtrcDataPanel(initialRows: any[]) {
     unidades,
     loading,
     isEsporadico,
+    token,
     gridRef,
     autoSizeAllColumns,
   };
